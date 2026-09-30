@@ -18,7 +18,7 @@ export default function AspirasiPage() {
         </div>
       </div>
       
-      <AspirationFeed showRanking={true} />
+      <AspirationFeed showRanking={true} columns={2} />
     </div>
   );
 }

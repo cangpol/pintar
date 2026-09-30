@@ -5,12 +5,13 @@ import AspirationCard from "./AspirationCard";
 import { Filter, ChevronDown, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { MOCK_ASPIRATIONS_DATA } from "@/lib/dummyData";
 
-export default function AspirationFeed({ showRanking = false }: { showRanking?: boolean }) {
+export default function AspirationFeed({ showRanking = false, columns = 3 }: { showRanking?: boolean, columns?: 2 | 3 }) {
   const [filterMode, setFilterMode] = useState<"semua" | "baru" | "seminggu" | "sebulan">("semua");
   const [viewMode, setViewMode] = useState<"aktif" | "arsip">("aktif");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = columns === 3 ? 6 : 10; // For 3 cols, 2 rows = 6. For 2 cols, 5 rows = 10 (or we can just keep 6 or 8)
+  
   
   const [aspirations, setAspirations] = useState<any[]>(MOCK_ASPIRATIONS_DATA);
 
@@ -129,7 +130,7 @@ export default function AspirationFeed({ showRanking = false }: { showRanking?: 
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${columns === 3 ? "lg:grid-cols-3" : ""} gap-6`}>
         {currentAspirations.map((aspiration, index) => {
           const globalIndex = (currentPage - 1) * itemsPerPage + index;
           return (
