@@ -243,6 +243,11 @@ export default function AdminDashboardPage() {
   const itemsPerPageAspirasi = 3;
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPageAspirasi(1);
+  }, [aspirasiStatusFilter]);
+
   if (!currentUser) return null;
 
   const handleTabClick = (tab: "dashboard" | "aspirasi" | "users" | "dinas") => {
@@ -274,11 +279,6 @@ export default function AdminDashboardPage() {
     (currentPageAspirasi - 1) * itemsPerPageAspirasi,
     currentPageAspirasi * itemsPerPageAspirasi
   );
-
-  // Reset page when filter changes
-  useEffect(() => {
-    setCurrentPageAspirasi(1);
-  }, [aspirasiStatusFilter]);
 
   const renderModals = () => {
     if (!isClient) return null;
