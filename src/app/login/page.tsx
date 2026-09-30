@@ -141,14 +141,7 @@ export default function LoginPage() {
             </div>
           </form>
           
-          <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
-            <p className="text-xs font-bold text-slate-500 mb-2">Akun Demo (Sandi: 123):</p>
-            <ul className="text-xs text-slate-400 space-y-1">
-              <li>• Super Admin: admin@tvri.co.id</li>
-              <li>• Operator: operator@dinas.go.id</li>
-              <li>• Peninjau: peninjau@tvri.co.id</li>
-            </ul>
-          </div>
+
 
           <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-2 text-xs font-medium text-slate-400 dark:text-slate-500">
             <ShieldCheck className="w-4 h-4" />

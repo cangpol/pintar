@@ -145,7 +145,7 @@ export default function AspirationCard({
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex flex-col gap-4 mb-4">
             {baseCommentCount > 0 && comments.length === 0 && (
-               <p className="text-sm text-center text-slate-500 py-2">Ada {baseCommentCount} komentar terdahulu (Data disembunyikan dalam mode demo).</p>
+               <p className="text-sm text-center text-slate-500 py-2">Lihat {baseCommentCount} komentar sebelumnya...</p>
             )}
             {comments.length > 0 ? comments.map(comment => (
               <div key={comment.id} className="flex gap-3">

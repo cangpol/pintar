@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, FileText, CheckCircle, Clock, LayoutDashboard, Check, X, Printer, UserPlus, Settings, LogOut, Trash2, Building2, Plus, Trophy, MapPin, AlertTriangle } from "lucide-react";
+import { Users, FileText, CheckCircle, Clock, LayoutDashboard, Check, X, Printer, UserPlus, Settings, LogOut, Trash2, Building2, Plus, Trophy, MapPin, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import jsPDF from "jspdf";
 import { createPortal } from "react-dom";
 import { MOCK_ASPIRATIONS_DATA } from "@/lib/dummyData";
@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userForm, setUserForm] = useState({ email: "", password: "", name: "", role: "Operator Dinas", instansi: "", status: "Aktif" });
 
-  const [aspirations, setAspirations] = useState(MOCK_ASPIRATIONS_DATA);
+  const [aspirations, setAspirations] = useState<any[]>([]);
 
   // Quick select dinas for approval
   const [selectedDinasForCard, setSelectedDinasForCard] = useState<Record<string, string>>({});
@@ -56,7 +56,21 @@ export default function AdminDashboardPage() {
     } else {
       setDinasList(storedDinas);
     }
+
+    const storedAsp = localStorage.getItem("pintar_aspirations");
+    if (storedAsp) {
+      setAspirations(JSON.parse(storedAsp));
+    } else {
+      setAspirations(MOCK_ASPIRATIONS_DATA);
+      localStorage.setItem("pintar_aspirations", JSON.stringify(MOCK_ASPIRATIONS_DATA));
+    }
   }, [router]);
+
+  useEffect(() => {
+    if (aspirations.length > 0) {
+      localStorage.setItem("pintar_aspirations", JSON.stringify(aspirations));
+    }
+  }, [aspirations]);
 
   const handleLogout = () => {
     localStorage.removeItem("pintar_session");
@@ -228,6 +242,9 @@ export default function AdminDashboardPage() {
 
   if (!currentUser) return null;
 
+  const [currentPageAspirasi, setCurrentPageAspirasi] = useState(1);
+  const itemsPerPageAspirasi = 3;
+
   const filteredByStatusAspirations = aspirations.filter(a => 
     aspirasiStatusFilter === "aktif" 
       ? (a.status !== "Selesai" && a.status !== "Ditolak/Arsip") 
@@ -241,6 +258,17 @@ export default function AdminDashboardPage() {
     // For arsip, sort by newest
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
+
+  const totalPagesAspirasi = Math.ceil(sortedAspirations.length / itemsPerPageAspirasi);
+  const currentAdminAspirations = sortedAspirations.slice(
+    (currentPageAspirasi - 1) * itemsPerPageAspirasi,
+    currentPageAspirasi * itemsPerPageAspirasi
+  );
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPageAspirasi(1);
+  }, [aspirasiStatusFilter]);
 
   const renderModals = () => {
     if (!isClient) return null;
@@ -398,6 +426,65 @@ export default function AdminDashboardPage() {
               </div>
             ))}
           </div>
+
+          {/* Monthly Trend Chart */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 mb-10 animate-premium-reveal">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <div>
+                <h3 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                  <LayoutDashboard className="w-5 h-5 text-teal-500" /> Grafik Tren Bulanan
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Statistik aspirasi berdasarkan status setiap bulannya
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-xs font-bold">
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-blue-500"></div> Menunggu</div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-orange-500"></div> Diteruskan</div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-emerald-500"></div> Selesai</div>
+              </div>
+            </div>
+
+            <div className="h-64 flex items-end gap-2 sm:gap-4 md:gap-8 justify-between relative mt-4 pt-10">
+              {/* Horizontal Grid lines */}
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20 dark:opacity-10">
+                {[0, 1, 2, 3, 4].map(i => (
+                  <div key={i} className="w-full border-t border-slate-400 border-dashed"></div>
+                ))}
+              </div>
+              
+              {/* Chart Bars */}
+              {[
+                { month: "Jan", menunggu: 12, diteruskan: 18, selesai: 20 },
+                { month: "Feb", menunggu: 15, diteruskan: 12, selesai: 28 },
+                { month: "Mar", menunggu: 8, diteruskan: 25, selesai: 35 },
+                { month: "Apr", menunggu: 20, diteruskan: 15, selesai: 40 },
+                { month: "Mei", menunggu: 25, diteruskan: 30, selesai: 45 },
+                { month: "Jun", menunggu: 10, diteruskan: 20, selesai: 50 },
+              ].map((data, i) => {
+                const total = data.menunggu + data.diteruskan + data.selesai;
+                const hMenunggu = (data.menunggu / 100) * 100; // max ~100
+                const hDiteruskan = (data.diteruskan / 100) * 100;
+                const hSelesai = (data.selesai / 100) * 100;
+                
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2 group z-10">
+                    <div className="w-full max-w-[40px] h-full flex flex-col-reverse justify-start rounded-t-lg overflow-hidden bg-slate-100 dark:bg-slate-700/30 group-hover:bg-slate-200 dark:group-hover:bg-slate-700/50 transition-colors relative">
+                      {/* Tooltip */}
+                      <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+                        Total: {total}
+                      </div>
+                      
+                      <div style={{ height: `${hSelesai}%` }} className="bg-emerald-500 w-full transition-all duration-700 hover:brightness-110"></div>
+                      <div style={{ height: `${hDiteruskan}%` }} className="bg-orange-500 w-full transition-all duration-700 hover:brightness-110"></div>
+                      <div style={{ height: `${hMenunggu}%` }} className="bg-blue-500 w-full transition-all duration-700 hover:brightness-110"></div>
+                    </div>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{data.month}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -440,7 +527,8 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex flex-col gap-5">
-            {sortedAspirations.map((item, index) => {
+            {currentAdminAspirations.map((item, index) => {
+              const globalIndex = (currentPageAspirasi - 1) * itemsPerPageAspirasi + index;
               
               return (
                 <div key={item.id} className="flex flex-col lg:flex-row bg-[#0B152B] border border-[#1A2642] rounded-3xl overflow-hidden shadow-2xl relative text-white">
@@ -448,7 +536,7 @@ export default function AdminDashboardPage() {
                   {/* Left Section: Info */}
                   <div className="flex-1 p-6 lg:p-8 flex items-start gap-4 lg:gap-6 border-b lg:border-b-0 lg:border-r border-[#1A2642]">
                     <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-500/20">
-                      {index + 1}
+                      {globalIndex + 1}
                     </div>
 
                     <div className="flex-1">
@@ -460,7 +548,23 @@ export default function AdminDashboardPage() {
                       </div>
                       
                       <h3 className="text-xl font-bold text-white mb-3 leading-snug">{item.title}</h3>
-                      <p className="text-slate-400 text-sm leading-relaxed mb-6">{item.description}</p>
+                      <p className="text-slate-400 text-sm leading-relaxed mb-4">{item.description}</p>
+                      
+                      {/* Submitter Info */}
+                      <div className="bg-[#1A2642] p-4 rounded-xl border border-[#2A3B61] mb-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-slate-400 w-16">Pengirim:</span>
+                          <span className="text-sm font-bold text-slate-200">{item.author}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-slate-400 w-16">Telepon:</span>
+                          <span className="text-sm font-bold text-slate-200">{item.phone || "-"}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs text-slate-400 w-16 mt-0.5">Alamat:</span>
+                          <span className="text-sm font-bold text-slate-200 flex-1">{item.address || "-"}</span>
+                        </div>
+                      </div>
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -485,7 +589,7 @@ export default function AdminDashboardPage() {
                       <div className="absolute right-6 top-8 text-center hidden md:block">
                         <Trophy className="w-6 h-6 text-orange-400 mx-auto mb-1" />
                         <p className="text-xs text-slate-400 font-bold">Ranking</p>
-                        <p className="text-3xl font-black text-white">#{index + 1}</p>
+                        <p className="text-3xl font-black text-white">#{globalIndex + 1}</p>
                       </div>
                     )}
 
@@ -574,6 +678,31 @@ export default function AdminDashboardPage() {
               );
             })}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPagesAspirasi > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-4">
+              <button 
+                onClick={() => setCurrentPageAspirasi(p => Math.max(1, p - 1))}
+                disabled={currentPageAspirasi === 1}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              <div className="text-sm font-bold text-slate-400">
+                Halaman {currentPageAspirasi} dari {totalPagesAspirasi}
+              </div>
+              
+              <button 
+                onClick={() => setCurrentPageAspirasi(p => Math.min(totalPagesAspirasi, p + 1))}
+                disabled={currentPageAspirasi === totalPagesAspirasi}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

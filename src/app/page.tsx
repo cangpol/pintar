@@ -75,18 +75,17 @@ export default function Home() {
       </section>
 
       {/* Main Content - Bento Grid */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+        <div className="flex flex-col gap-12 relative z-10">
           
-          <div className="lg:col-span-5 flex flex-col gap-8">
-            <div className="animate-premium-reveal" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-              <SubmissionForm />
-            </div>
+          {/* Top: Feed */}
+          <div className="animate-premium-reveal w-full" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+            <AspirationFeed />
           </div>
 
-          {/* Right Column: Feed */}
-          <div className="lg:col-span-7 animate-premium-reveal" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
-            <AspirationFeed />
+          {/* Bottom: Form */}
+          <div className="animate-premium-reveal w-full max-w-4xl mx-auto mb-20" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
+            <SubmissionForm />
           </div>
 
         </div>

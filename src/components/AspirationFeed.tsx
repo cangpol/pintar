@@ -1,17 +1,35 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import AspirationCard from "./AspirationCard";
-import { Filter, ChevronDown, Trophy } from "lucide-react";
+import { Filter, ChevronDown, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { MOCK_ASPIRATIONS_DATA } from "@/lib/dummyData";
 
 export default function AspirationFeed() {
   const [filterMode, setFilterMode] = useState<"semua" | "baru" | "seminggu" | "sebulan">("semua");
   const [viewMode, setViewMode] = useState<"aktif" | "arsip">("aktif");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+  
+  const [aspirations, setAspirations] = useState<any[]>(MOCK_ASPIRATIONS_DATA);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("pintar_aspirations");
+    if (stored) {
+      setAspirations(JSON.parse(stored));
+    } else {
+      localStorage.setItem("pintar_aspirations", JSON.stringify(MOCK_ASPIRATIONS_DATA));
+    }
+  }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterMode, viewMode]);
 
   const filteredAndRankedAspirations = useMemo(() => {
-    let filtered = [...MOCK_ASPIRATIONS_DATA];
+    let filtered = [...aspirations];
     
     // Time Filtering logic
     const now = new Date().getTime();
@@ -31,7 +49,6 @@ export default function AspirationFeed() {
     }
 
     // Ranking Logic (Total = Urgensi only)
-    // Only sort by urgensi if it's active. For Arsip, we can just leave it as is or sort by time.
     if (viewMode === "aktif") {
       filtered.sort((a, b) => b.urgensi - a.urgensi);
     } else {
@@ -40,6 +57,12 @@ export default function AspirationFeed() {
 
     return filtered;
   }, [filterMode, viewMode]);
+
+  const totalPages = Math.ceil(filteredAndRankedAspirations.length / itemsPerPage);
+  const currentAspirations = filteredAndRankedAspirations.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,30 +129,47 @@ export default function AspirationFeed() {
         </div>
       </div>
       
-      <div className="flex flex-col gap-6">
-        {filteredAndRankedAspirations.map((aspiration, index) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {currentAspirations.map((aspiration) => {
           return (
-            <div key={aspiration.id} className="relative">
-              {/* Ranking Badge (Only for aktif) */}
-              {viewMode === "aktif" && (
-                <div className="absolute -top-3 -left-3 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 text-white shadow-lg shadow-orange-500/30 text-xs font-black border-2 border-white dark:border-slate-900">
-                  <Trophy className="w-3.5 h-3.5" />
-                  TOP {index + 1} (Urgensi: {aspiration.urgensi})
-                </div>
-              )}
-              
-              <div className={viewMode === "aktif" ? "pt-2" : ""}>
+            <div key={aspiration.id} className="relative h-full flex">
+              <div className="w-full">
                 <AspirationCard {...aspiration} />
               </div>
             </div>
           );
         })}
         {filteredAndRankedAspirations.length === 0 && (
-          <div className="text-center py-10 text-slate-500 font-bold bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="col-span-1 md:col-span-2 text-center py-10 text-slate-500 font-bold bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
             Tidak ada aspirasi pada daftar ini.
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-4">
+          <button 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="text-sm font-bold text-slate-600 dark:text-slate-300">
+            Halaman {currentPage} dari {totalPages}
+          </div>
+          
+          <button 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
