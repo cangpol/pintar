@@ -245,7 +245,7 @@ export default function AdminDashboardPage() {
 
   if (!currentUser) return null;
 
-  const handleTabClick = (tab: string) => {
+  const handleTabClick = (tab: "dashboard" | "aspirasi" | "users" | "dinas") => {
     // Ultimate Super Admin check
     const isUltimate = currentUser.email === "mariaesfera@pintar.com";
     if ((tab === "users" || tab === "dinas") && !isUltimate) {
