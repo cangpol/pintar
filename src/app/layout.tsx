@@ -48,10 +48,10 @@ export default function RootLayout({
               <button className="hidden md:flex w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
                 <Bell className="w-4 h-4" />
               </button>
-              <button className="flex items-center gap-2 bg-gradient-to-r from-orange-400 to-orange-500 text-white p-2.5 md:px-5 md:py-2.5 rounded-full text-sm font-bold hover:from-orange-500 hover:to-orange-600 transition-all shadow-md hover:shadow-lg hover:shadow-orange-500/20 active:scale-95">
+              <Link href="/login" className="flex items-center gap-2 bg-gradient-to-r from-orange-400 to-orange-500 text-white p-2.5 md:px-5 md:py-2.5 rounded-full text-sm font-bold hover:from-orange-500 hover:to-orange-600 transition-all shadow-md hover:shadow-lg hover:shadow-orange-500/20 active:scale-95">
                 <LogIn className="w-5 h-5 md:w-4 md:h-4" />
                 <span className="hidden md:block">Masuk</span>
-              </button>
+              </Link>
             </div>
           </div>
         </nav>
