@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, FileText, CheckCircle, Clock, Search, Filter, MoreVertical, LayoutDashboard, ShieldCheck, Download, Check, X, Printer, UserPlus, Settings, LogOut, Trash2 } from "lucide-react";
+import { Users, FileText, CheckCircle, Clock, Search, Filter, MoreVertical, LayoutDashboard, ShieldCheck, Check, X, Printer, UserPlus, Settings, LogOut, Trash2, Eye } from "lucide-react";
 import jsPDF from "jspdf";
 
 export default function AdminDashboardPage() {
@@ -13,16 +13,19 @@ export default function AdminDashboardPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
 
-  // Modal State for CRUD User
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userForm, setUserForm] = useState({ email: "", password: "", name: "", role: "Operator Dinas", instansi: "", status: "Aktif" });
 
+  // Aspiration Detail Modal State
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedAspiration, setSelectedAspiration] = useState<any>(null);
+  const [selectedDinas, setSelectedDinas] = useState("");
+
   const [aspirations, setAspirations] = useState([
-    { id: "ASP-001", user: "Budi Santoso", category: "Infrastruktur", description: "Jalan berlubang parah di ruas jalan protokol depan pasar induk yang menyebabkan kecelakaan.", status: "Menunggu Approval", date: "Hari ini, 09:30", color: "text-orange-500 bg-orange-500/10" },
-    { id: "ASP-002", user: "Siti Aminah", category: "Pelayanan Publik", description: "Antrean panjang dan pelayanan lambat di Disdukcapil kota.", status: "Selesai", date: "Kemarin, 14:15", color: "text-emerald-500 bg-emerald-500/10" },
-    { id: "ASP-003", user: "Agus Pratama", category: "Lingkungan", description: "Sampah menumpuk tidak diangkut selama 4 hari di TPS dekat perumahan warga.", status: "Menunggu Approval", date: "28 Sep, 08:45", color: "text-orange-500 bg-orange-500/10" },
-    { id: "ASP-004", user: "Dewi Lestari", category: "Fasilitas Umum", description: "Lampu penerangan jalan (PJU) mati total di sepanjang jalan merdeka barat.", status: "Diteruskan ke Dinas", date: "27 Sep, 16:20", color: "text-blue-500 bg-blue-500/10" },
+    { id: "ASP-001", user: "Budi Santoso", category: "Infrastruktur", title: "Perbaikan Jalan Berlubang di Jl. Merdeka", description: "Terdapat banyak lubang di sepanjang jalan Merdeka yang membahayakan pengendara motor, terutama saat hujan karena tertutup genangan air. Mohon segera diperbaiki sebelum ada korban jiwa.", status: "Menunggu Approval", date: "Hari ini, 09:30", color: "text-orange-500 bg-orange-500/10", forwardedTo: "" },
+    { id: "ASP-002", user: "Siti Aminah", category: "Fasilitas Umum", title: "Lampu Jalan Mati di Komplek Mawar", description: "Sudah 3 hari lampu penerangan jalan di blok C mati. Kondisi sangat gelap di malam hari dan rawan tindak kejahatan.", status: "Menunggu Approval", date: "Kemarin, 14:15", color: "text-orange-500 bg-orange-500/10", forwardedTo: "" },
+    { id: "ASP-003", user: "Ahmad Riyadi", category: "Lingkungan", title: "Penambahan Tempat Sampah di Taman Kota", description: "Taman kota semakin ramai dikunjungi saat akhir pekan, namun jumlah tempat sampah sangat kurang sehingga banyak sampah berserakan.", status: "Selesai", date: "1 hari yang lalu", color: "text-emerald-500 bg-emerald-500/10", forwardedTo: "Dinas Lingkungan Hidup" },
   ]);
 
   useEffect(() => {
@@ -40,7 +43,6 @@ export default function AdminDashboardPage() {
     router.push("/");
   };
 
-  // CRUD USER FUNCTIONS
   const handleOpenUserModal = (userId: string | null = null) => {
     if (userId) {
       const u = users.find(x => x.id === userId);
@@ -80,70 +82,108 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleApprove = (id: string) => {
-    setLoadingAction(id);
+  const openDetailModal = (aspiration: any) => {
+    setSelectedAspiration(aspiration);
+    setSelectedDinas(aspiration.forwardedTo || "");
+    setIsDetailModalOpen(true);
+  };
+
+  const handleApproveFromDetail = () => {
+    if (!selectedDinas) {
+      alert("Pilih dinas yang akan diteruskan terlebih dahulu!");
+      return;
+    }
+    setLoadingAction(selectedAspiration.id);
     setTimeout(() => {
       setAspirations(prev => prev.map(a => 
-        a.id === id ? { ...a, status: "Diteruskan ke Dinas", color: "text-blue-500 bg-blue-500/10" } : a
+        a.id === selectedAspiration.id ? { ...a, status: "Diteruskan ke Dinas", color: "text-blue-500 bg-blue-500/10", forwardedTo: selectedDinas } : a
       ));
       setLoadingAction(null);
-      alert(`Aspirasi ${id} berhasil diapprove dan diteruskan ke instansi terkait!`);
+      setIsDetailModalOpen(false);
     }, 1000);
+  };
+
+  const handleReject = (id: string) => {
+    if(confirm("Apakah Anda yakin ingin menolak/mengarsipkan aspirasi ini?")) {
+      setAspirations(prev => prev.map(a => 
+        a.id === id ? { ...a, status: "Ditolak/Arsip", color: "text-slate-500 bg-slate-500/10" } : a
+      ));
+    }
   };
 
   const generatePDF = (aspiration: any) => {
     const doc = new jsPDF();
+    
+    // Kop Surat TVRI
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("PINTAR - PUSAT INTERAKSI & ASPIRASI RAKYAT", 105, 20, { align: "center" });
+    doc.setFontSize(22);
+    doc.setTextColor(0, 102, 204); // TVRI Blue
+    doc.text("TVRI JAWA TENGAH", 105, 20, { align: "center" });
+    
     doc.setFontSize(12);
+    doc.setTextColor(50, 50, 50);
     doc.setFont("helvetica", "normal");
-    doc.text("TVRI Jawa Tengah", 105, 27, { align: "center" });
+    doc.text("SISTEM PUSAT INTERAKSI & ASPIRASI RAKYAT (PINTAR)", 105, 28, { align: "center" });
     
+    // Line separator
+    doc.setLineWidth(1);
+    doc.setDrawColor(0, 102, 204);
+    doc.line(20, 35, 190, 35);
     doc.setLineWidth(0.5);
-    doc.line(20, 32, 190, 32);
+    doc.setDrawColor(0, 0, 0);
+    doc.line(20, 37, 190, 37);
     
+    // Judul Surat
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("SURAT PENGANTAR ASPIRASI MASYARAKAT", 105, 45, { align: "center" });
+    doc.text("SURAT PENGANTAR ASPIRASI MASYARAKAT", 105, 55, { align: "center" });
     
+    // Isi
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text(`Nomor Tiket  : ${aspiration.id}`, 20, 60);
-    doc.text(`Tanggal      : ${new Date().toLocaleDateString('id-ID')}`, 20, 67);
-    doc.text(`Kategori     : ${aspiration.category}`, 20, 74);
     
-    doc.text("Kepada Yth,", 20, 90);
+    doc.text(`Nomor Tiket  : ${aspiration.id}`, 20, 70);
+    doc.text(`Tanggal      : ${new Date().toLocaleDateString('id-ID')}`, 20, 77);
+    doc.text(`Kategori     : ${aspiration.category}`, 20, 84);
+    
+    doc.text("Kepada Yth,", 20, 100);
     doc.setFont("helvetica", "bold");
-    doc.text(`Kepala Dinas / Instansi Terkait (Kategori: ${aspiration.category})`, 20, 97);
+    doc.text(`Kepala ${aspiration.forwardedTo || "Instansi Terkait"}`, 20, 107);
     doc.setFont("helvetica", "normal");
-    doc.text("di Tempat", 20, 104);
+    doc.text("di Tempat", 20, 114);
     
     const bodyText = `Dengan hormat,\n\nMelalui surat ini, kami meneruskan laporan dan aspirasi dari masyarakat yang masuk melalui platform PINTAR TVRI Jawa Tengah. Berikut adalah rincian laporan yang perlu mendapat perhatian dan tindak lanjut dari instansi Bapak/Ibu:`;
     const splitBody = doc.splitTextToSize(bodyText, 170);
-    doc.text(splitBody, 20, 120);
+    doc.text(splitBody, 20, 130);
     
     doc.setFont("helvetica", "bold");
-    doc.text("Nama Pelapor :", 25, 145);
+    doc.text("Nama Pelapor :", 25, 155);
     doc.setFont("helvetica", "normal");
-    doc.text(aspiration.user, 60, 145);
+    doc.text(aspiration.user, 60, 155);
     
     doc.setFont("helvetica", "bold");
-    doc.text("Uraian Aduan :", 25, 155);
+    doc.text("Judul Laporan :", 25, 165);
+    doc.setFont("helvetica", "normal");
+    doc.text(aspiration.title, 60, 165);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Uraian Aduan :", 25, 175);
     doc.setFont("helvetica", "normal");
     const splitDesc = doc.splitTextToSize(aspiration.description, 130);
-    doc.text(splitDesc, 60, 155);
+    doc.text(splitDesc, 60, 175);
     
     const closingText = `Demikian surat pengantar ini kami sampaikan. Kami sangat mengharapkan tindak lanjut segera demi mewujudkan pelayanan publik yang lebih baik.\n\nAtas perhatian dan kerja samanya, kami ucapkan terima kasih.`;
     const splitClosing = doc.splitTextToSize(closingText, 170);
-    doc.text(splitClosing, 20, 190);
+    doc.text(splitClosing, 20, 210);
     
-    doc.text("Hormat kami,", 140, 220);
+    doc.text("Hormat kami,", 140, 240);
     doc.setFont("helvetica", "bold");
-    doc.text(currentUser?.name || "Administrator", 140, 245);
-    doc.text("PINTAR TVRI Jawa Tengah", 140, 252);
+    doc.text(currentUser?.name || "Administrator", 140, 265);
+    doc.text("PINTAR TVRI Jawa Tengah", 140, 272);
     
-    doc.save(`Surat_Pengantar_Aspirasi_${aspiration.id}.pdf`);
+    // Open PDF in new window (Preview)
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
   };
 
   if (!currentUser) return null;
@@ -248,7 +288,8 @@ export default function AdminDashboardPage() {
                   <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
                     <td className="px-6 py-4">
                       <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">{item.id} - {item.user}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 max-w-sm">{item.description}</p>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{item.title}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-xs">{item.description}</p>
                       <p className="text-xs text-slate-400 mt-1">{item.date}</p>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-medium">{item.category}</td>
@@ -259,23 +300,23 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => openDetailModal(item)}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white dark:bg-blue-500/10 dark:hover:bg-blue-500 rounded-lg transition-colors text-xs font-bold"
+                          title="Lihat Detail & Proses"
+                        >
+                          <Eye className="w-4 h-4" /> Detail
+                        </button>
+                        
                         {item.status === "Menunggu Approval" && currentUser.role === "Super Admin" ? (
-                          <>
-                            <button onClick={() => handleApprove(item.id)} disabled={loadingAction === item.id} className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-500 rounded-lg transition-colors group relative" title="Setujui & Teruskan">
-                              {loadingAction === item.id ? <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" /> : <Check className="w-5 h-5" />}
-                            </button>
-                            <button className="p-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:hover:bg-red-500 rounded-lg transition-colors group relative" title="Tolak / Arsipkan">
-                              <X className="w-5 h-5" />
-                            </button>
-                          </>
-                        ) : item.status === "Diteruskan ke Dinas" || item.status === "Selesai" ? (
-                          <button onClick={() => generatePDF(item)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-xl transition-all text-xs font-bold" title="Export Pengantar ke Dinas (PDF)">
-                            <Printer className="w-4 h-4" />
-                            <span>Cetak PDF</span>
+                          <button onClick={() => handleReject(item.id)} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:hover:bg-red-500 rounded-lg transition-colors group relative" title="Tolak / Arsipkan">
+                            <X className="w-4 h-4" />
                           </button>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Menunggu Super Admin</span>
-                        )}
+                        ) : (item.status === "Diteruskan ke Dinas" || item.status === "Selesai") ? (
+                          <button onClick={() => generatePDF(item)} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-lg transition-all text-xs font-bold" title="Preview Surat Pengantar ke Dinas (PDF)">
+                            <Printer className="w-4 h-4" /> Cetak
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -337,6 +378,85 @@ export default function AdminDashboardPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Aspiration Detail & Approval Modal */}
+      {isDetailModalOpen && selectedAspiration && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 animate-premium-reveal max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">{selectedAspiration.title}</h3>
+                <p className="text-sm font-bold text-teal-600 dark:text-teal-400 mt-1">{selectedAspiration.id} • {selectedAspiration.date}</p>
+              </div>
+              <button onClick={() => setIsDetailModalOpen(false)} className="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 mb-6 border border-slate-100 dark:border-slate-700/50">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pelapor</p>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{selectedAspiration.user}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Kategori</p>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{selectedAspiration.category}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Isi Laporan / Keluhan</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">{selectedAspiration.description}</p>
+              </div>
+            </div>
+
+            {selectedAspiration.status === "Menunggu Approval" && currentUser.role === "Super Admin" ? (
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-teal-500" /> Form Persetujuan & Penerusan
+                </h4>
+                <div className="mb-6">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">Pilih Dinas Tujuan</label>
+                  <select 
+                    value={selectedDinas} 
+                    onChange={e => setSelectedDinas(e.target.value)} 
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white text-sm font-medium"
+                  >
+                    <option value="">-- Pilih Dinas / Instansi --</option>
+                    <option value="Dinas Pekerjaan Umum (PU)">Dinas Pekerjaan Umum (PU)</option>
+                    <option value="Dinas Lingkungan Hidup">Dinas Lingkungan Hidup</option>
+                    <option value="Dinas Perhubungan">Dinas Perhubungan</option>
+                    <option value="Dinas Kependudukan dan Catatan Sipil">Dinas Kependudukan dan Catatan Sipil</option>
+                    <option value="Satpol PP">Satpol PP</option>
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setIsDetailModalOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-all">Batal</button>
+                  <button 
+                    onClick={handleApproveFromDetail} 
+                    disabled={loadingAction === selectedAspiration.id}
+                    className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70"
+                  >
+                    {loadingAction === selectedAspiration.id ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Check className="w-5 h-5" /> Setujui & Teruskan</>}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-300">Status: {selectedAspiration.status}</p>
+                  {selectedAspiration.forwardedTo && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Diteruskan ke: {selectedAspiration.forwardedTo}</p>
+                  )}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl">Tutup</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
