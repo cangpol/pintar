@@ -223,10 +223,10 @@ export default function AdminDashboardPage() {
     window.open(doc.output('bloburl'), '_blank');
   };
 
-  if (!currentUser) return null;
-
   const [aspirasiStatusFilter, setAspirasiStatusFilter] = useState<"aktif" | "arsip">("aktif");
   const [editingUrgensi, setEditingUrgensi] = useState<Record<string, number>>({});
+
+  if (!currentUser) return null;
 
   const filteredByStatusAspirations = aspirations.filter(a => 
     aspirasiStatusFilter === "aktif" 

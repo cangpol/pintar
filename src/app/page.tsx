@@ -78,24 +78,9 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left Column: Form & Tracking */}
           <div className="lg:col-span-5 flex flex-col gap-8">
             <div className="animate-premium-reveal" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
               <SubmissionForm />
-            </div>
-            
-            <div className="animate-premium-reveal" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
-              <ProgressTracker steps={trackerSteps} />
-            </div>
-
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 md:p-8 border border-slate-700 shadow-xl text-white relative overflow-hidden group hover:shadow-2xl hover:shadow-teal-900/20 transition-all animate-premium-reveal" style={{ animationDelay: '0.4s', animationFillMode: 'both' }}>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl -z-10 group-hover:bg-teal-500/30 transition-all" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl -z-10" />
-              <h3 className="text-xl font-bold mb-3">Punya Pertanyaan?</h3>
-              <p className="text-sm text-slate-300 mb-6 leading-relaxed">Tim PINTAR siap membantu Anda 24/7 melalui layanan aduan cepat.</p>
-              <button className="bg-white text-slate-900 px-6 py-3 rounded-xl text-sm font-bold hover:bg-teal-50 hover:text-teal-700 transition-all active:scale-95 shadow-md w-full sm:w-auto">
-                Hubungi Bantuan
-              </button>
             </div>
           </div>
 
