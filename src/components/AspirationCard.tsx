@@ -44,7 +44,6 @@ export default function AspirationCard({
 }: AspirationCardProps) {
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [hasUpvoted, setHasUpvoted] = useState(false);
-  const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   
   // Normalize initial comments to always be an array internally if we want to add to it,
@@ -140,17 +139,15 @@ export default function AspirationCard({
           </button>
           
           <button 
-            onClick={() => setShowComments(!showComments)}
+            onClick={() => setIsModalOpen(true)}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all active:scale-95 ${
-              showComments ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 hover:text-slate-700 dark:hover:text-slate-200"
+              isModalOpen ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
           >
-            <MessageSquare className={`w-4 h-4 ${showComments ? "fill-current opacity-20" : ""}`} />
+            <MessageSquare className={`w-4 h-4 ${isModalOpen ? "fill-current opacity-20" : ""}`} />
             <span>{baseCommentCount + comments.length}</span>
           </button>
         </div>
-      </div>
-
       </div>
 
       {/* Up to 3 Comments */}
