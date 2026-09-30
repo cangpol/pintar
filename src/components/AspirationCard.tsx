@@ -19,15 +19,17 @@ export interface AspirationCardProps {
   author: string;
   time: string;
   category: string;
-  status: AspirationStatus;
+  status: string;
   initialUpvotes: number;
-  comments: Comment[];
+  comments: number | Comment[];
 }
 
-const statusConfig = {
-  Menunggu: { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 border-red-100" },
-  Diproses: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
-  Selesai: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
+const statusConfig: Record<string, { icon: any, color: string, bg: string }> = {
+  "Menunggu Approval": { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 border-red-100" },
+  "Diteruskan ke Dinas": { icon: Clock, color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
+  "Diproses": { icon: Clock, color: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
+  "Selesai": { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
+  "Ditolak/Arsip": { icon: AlertCircle, color: "text-slate-600", bg: "bg-slate-50 border-slate-100" }
 };
 
 export default function AspirationCard({
@@ -44,7 +46,15 @@ export default function AspirationCard({
   const [hasUpvoted, setHasUpvoted] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+  
+  // Normalize initial comments to always be an array internally if we want to add to it,
+  // or just handle the count. Let's just create an empty array if it's a number.
+  const [comments, setComments] = useState<Comment[]>(
+    Array.isArray(initialComments) ? initialComments : []
+  );
+  
+  // Keep track of the initial number if it was just a count
+  const baseCommentCount = Array.isArray(initialComments) ? 0 : initialComments;
 
   const handleUpvote = () => {
     if (hasUpvoted) {
@@ -71,7 +81,8 @@ export default function AspirationCard({
     setCommentText("");
   };
 
-  const StatusIcon = statusConfig[status].icon;
+  const config = statusConfig[status] || { icon: AlertCircle, color: "text-slate-600", bg: "bg-slate-50 border-slate-100" };
+  const StatusIcon = config.icon;
 
   return (
     <div className="bg-white dark:bg-slate-800/80 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 group">
@@ -88,9 +99,9 @@ export default function AspirationCard({
             {title}
           </h3>
         </div>
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${statusConfig[status].bg} dark:bg-transparent dark:border-current`}>
-          <StatusIcon className={`w-4 h-4 ${statusConfig[status].color}`} />
-          <span className={`text-xs font-bold ${statusConfig[status].color}`}>{status}</span>
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${config.bg} dark:bg-transparent dark:border-current`}>
+          <StatusIcon className={`w-4 h-4 ${config.color}`} />
+          <span className={`text-xs font-bold ${config.color}`}>{status}</span>
         </div>
       </div>
 
@@ -124,7 +135,7 @@ export default function AspirationCard({
             }`}
           >
             <MessageSquare className={`w-4 h-4 ${showComments ? "fill-current opacity-20" : ""}`} />
-            <span>{comments.length}</span>
+            <span>{baseCommentCount + comments.length}</span>
           </button>
         </div>
       </div>
@@ -133,6 +144,9 @@ export default function AspirationCard({
       {showComments && (
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex flex-col gap-4 mb-4">
+            {baseCommentCount > 0 && comments.length === 0 && (
+               <p className="text-sm text-center text-slate-500 py-2">Ada {baseCommentCount} komentar terdahulu (Data disembunyikan dalam mode demo).</p>
+            )}
             {comments.length > 0 ? comments.map(comment => (
               <div key={comment.id} className="flex gap-3">
                 <div className="w-6 h-6 shrink-0 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center mt-0.5">

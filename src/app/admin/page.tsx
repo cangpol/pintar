@@ -194,7 +194,7 @@ export default function AdminDashboardPage() {
     doc.setFont("helvetica", "bold");
     doc.text("Nama Pelapor :", 25, 160);
     doc.setFont("helvetica", "normal");
-    doc.text(aspiration.user || aspiration.author, 60, 160);
+    doc.text(aspiration.author, 60, 160);
     doc.setFont("helvetica", "bold");
     doc.text("Judul Laporan :", 25, 170);
     doc.setFont("helvetica", "normal");
@@ -424,9 +424,9 @@ export default function AdminDashboardPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm">
-                            {(item.author || item.user || "A")[0]}
+                            {(item.author || "A")[0]}
                           </div>
-                          <span className="text-sm font-bold text-slate-300">{item.author || item.user}</span>
+                          <span className="text-sm font-bold text-slate-300">{item.author}</span>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-1.5 text-slate-400 bg-[#1A2642] border border-[#2A3B61] px-3 py-1.5 rounded-lg text-sm font-bold">
