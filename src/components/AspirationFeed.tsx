@@ -1,85 +1,16 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import AspirationCard, { AspirationCardProps, Comment } from "./AspirationCard";
+import AspirationCard from "./AspirationCard";
 import { Filter, ChevronDown, Trophy } from "lucide-react";
-
-// Extended interface to include SPK variables
-export interface RankedAspiration extends AspirationCardProps {
-  jarak: number;
-  urgensi: number;
-  createdAt: string; // ISO date string for filtering
-}
-
-const MOCK_ASPIRATIONS: RankedAspiration[] = [
-  {
-    id: "1",
-    title: "Perbaikan Jalan Berlubang di Jl. Merdeka",
-    description: "Terdapat banyak lubang di sepanjang jalan Merdeka yang membahayakan pengendara motor, terutama saat hujan karena tertutup genangan air. Mohon segera diperbaiki.",
-    author: "Budi Santoso",
-    time: "2 jam yang lalu",
-    category: "Infrastruktur",
-    status: "Diproses",
-    initialUpvotes: 124,
-    comments: [
-      { id: "c1", author: "Dinas PUPR", text: "Terima kasih laporannya. Tim kami sedang menuju ke lokasi.", time: "1 jam yang lalu" }
-    ],
-    jarak: 85,
-    urgensi: 90,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    title: "Lampu Jalan Mati di Komplek Mawar",
-    description: "Sudah 3 hari lampu penerangan jalan di blok C mati. Kondisi sangat gelap di malam hari dan rawan tindak kejahatan.",
-    author: "Siti Aminah",
-    time: "5 hari yang lalu",
-    category: "Fasilitas Umum",
-    status: "Menunggu",
-    initialUpvotes: 45,
-    comments: [],
-    jarak: 40,
-    urgensi: 60,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "3",
-    title: "Penambahan Tempat Sampah di Taman Kota",
-    description: "Taman kota semakin ramai dikunjungi saat akhir pekan, namun jumlah tempat sampah sangat kurang sehingga banyak sampah berserakan.",
-    author: "Ahmad Riyadi",
-    time: "2 minggu yang lalu",
-    category: "Lingkungan",
-    status: "Selesai",
-    initialUpvotes: 89,
-    comments: [
-      { id: "c3", author: "Dinas Lingkungan Hidup", text: "Telah ditambahkan 5 tong sampah baru.", time: "2 jam yang lalu" }
-    ],
-    jarak: 30,
-    urgensi: 40,
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "4",
-    title: "Pipa Air Bersih PDAM Bocor",
-    description: "Terdapat kebocoran pipa utama yang menggenangi jalan raya dan menyebabkan aliran air ke rumah warga terhenti total sejak pagi.",
-    author: "Dewi Lestari",
-    time: "1 hari yang lalu",
-    category: "Infrastruktur",
-    status: "Menunggu",
-    initialUpvotes: 210,
-    comments: [],
-    jarak: 95,
-    urgensi: 95,
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  }
-];
+import { MOCK_ASPIRATIONS_DATA } from "@/lib/dummyData";
 
 export default function AspirationFeed() {
   const [filterMode, setFilterMode] = useState<"semua" | "baru" | "seminggu" | "sebulan">("semua");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const filteredAndRankedAspirations = useMemo(() => {
-    let filtered = [...MOCK_ASPIRATIONS];
+    let filtered = [...MOCK_ASPIRATIONS_DATA];
     
     // Time Filtering logic
     const now = new Date().getTime();

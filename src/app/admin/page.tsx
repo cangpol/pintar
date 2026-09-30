@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, FileText, CheckCircle, Clock, LayoutDashboard, ShieldCheck, Check, X, Printer, UserPlus, Settings, LogOut, Trash2, Eye, Building2, Plus } from "lucide-react";
+import { Users, FileText, CheckCircle, Clock, LayoutDashboard, Check, X, Printer, UserPlus, Settings, LogOut, Trash2, Building2, Plus, Trophy, MapPin, AlertTriangle } from "lucide-react";
 import jsPDF from "jspdf";
 import { createPortal } from "react-dom";
+import { MOCK_ASPIRATIONS_DATA } from "@/lib/dummyData";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -25,16 +26,10 @@ export default function AdminDashboardPage() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userForm, setUserForm] = useState({ email: "", password: "", name: "", role: "Operator Dinas", instansi: "", status: "Aktif" });
 
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedAspiration, setSelectedAspiration] = useState<any>(null);
-  const [selectedDinas, setSelectedDinas] = useState("");
+  const [aspirations, setAspirations] = useState(MOCK_ASPIRATIONS_DATA);
 
-  const [aspirations, setAspirations] = useState([
-    { id: "ASP-001", user: "Budi Santoso", category: "Infrastruktur", title: "Perbaikan Jalan Berlubang di Jl. Merdeka", description: "Terdapat banyak lubang di sepanjang jalan Merdeka yang membahayakan pengendara motor, terutama saat hujan karena tertutup genangan air. Mohon segera diperbaiki.", status: "Menunggu Approval", date: "Hari ini, 09:30", color: "text-orange-500 bg-orange-500/10", forwardedTo: "", jarak: 85, urgensi: 90 },
-    { id: "ASP-004", user: "Dewi Lestari", category: "Infrastruktur", title: "Pipa Air Bersih PDAM Bocor", description: "Terdapat kebocoran pipa utama yang menggenangi jalan raya dan menyebabkan aliran air ke rumah warga terhenti total sejak pagi.", status: "Menunggu Approval", date: "Kemarin, 16:20", color: "text-orange-500 bg-orange-500/10", forwardedTo: "", jarak: 95, urgensi: 95 },
-    { id: "ASP-002", user: "Siti Aminah", category: "Fasilitas Umum", title: "Lampu Jalan Mati di Komplek Mawar", description: "Sudah 3 hari lampu penerangan jalan di blok C mati. Kondisi sangat gelap di malam hari dan rawan tindak kejahatan.", status: "Menunggu Approval", date: "Kemarin, 14:15", color: "text-orange-500 bg-orange-500/10", forwardedTo: "", jarak: 40, urgensi: 60 },
-    { id: "ASP-003", user: "Ahmad Riyadi", category: "Lingkungan", title: "Penambahan Tempat Sampah di Taman Kota", description: "Taman kota semakin ramai dikunjungi saat akhir pekan, namun jumlah tempat sampah sangat kurang sehingga banyak sampah berserakan.", status: "Selesai", date: "1 hari yang lalu", color: "text-emerald-500 bg-emerald-500/10", forwardedTo: "Dinas Lingkungan Hidup", jarak: 30, urgensi: 40 },
-  ]);
+  // Quick select dinas for approval
+  const [selectedDinasForCard, setSelectedDinasForCard] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -53,6 +48,8 @@ export default function AdminDashboardPage() {
         { id: "DIN-001", name: "Dinas Pekerjaan Umum (PU)", email: "pu@jateng.go.id", status: "Aktif" },
         { id: "DIN-002", name: "Dinas Lingkungan Hidup", email: "dlh@jateng.go.id", status: "Aktif" },
         { id: "DIN-003", name: "Dinas Perhubungan", email: "dishub@jateng.go.id", status: "Aktif" },
+        { id: "DIN-004", name: "Dinas Kesehatan", email: "dinkes@jateng.go.id", status: "Aktif" },
+        { id: "DIN-005", name: "Dinas Pendidikan", email: "disdik@jateng.go.id", status: "Aktif" },
       ];
       localStorage.setItem("pintar_dinas", JSON.stringify(defaultDinas));
       setDinasList(defaultDinas);
@@ -130,37 +127,30 @@ export default function AdminDashboardPage() {
   };
 
   // ASPIRATION ACTIONS
-  const openDetailModal = (aspiration: any) => {
-    setSelectedAspiration(aspiration);
-    setSelectedDinas(aspiration.forwardedTo || "");
-    setIsDetailModalOpen(true);
-  };
-
-  const handleApproveFromDetail = () => {
-    if (!selectedDinas) return alert("Pilih dinas yang akan diteruskan terlebih dahulu!");
-    setLoadingAction(`approve-${selectedAspiration.id}`);
+  const handleApprove = (id: string) => {
+    const dinas = selectedDinasForCard[id];
+    if (!dinas) return alert("Pilih dinas yang akan diteruskan pada dropdown terlebih dahulu!");
+    
+    setLoadingAction(`approve-${id}`);
     setTimeout(() => {
       setAspirations(prev => prev.map(a => 
-        a.id === selectedAspiration.id ? { ...a, status: "Diteruskan ke Dinas", color: "text-blue-500 bg-blue-500/10", forwardedTo: selectedDinas } : a
+        a.id === id ? { ...a, status: "Diteruskan ke Dinas", forwardedTo: dinas } : a
       ));
       setLoadingAction(null);
-      setIsDetailModalOpen(false);
     }, 1000);
   };
 
-  const handleRejectFromDetail = () => {
+  const handleReject = (id: string) => {
     if(confirm("Apakah Anda yakin ingin menolak aspirasi ini?")) {
       setAspirations(prev => prev.map(a => 
-        a.id === selectedAspiration.id ? { ...a, status: "Ditolak/Arsip", color: "text-slate-500 bg-slate-500/10" } : a
+        a.id === id ? { ...a, status: "Ditolak/Arsip" } : a
       ));
-      setIsDetailModalOpen(false);
     }
   };
 
   const handleDeleteAspiration = (id: string) => {
     if(confirm("Apakah Anda yakin ingin MENGHAPUS aspirasi ini secara permanen?")) {
       setAspirations(prev => prev.filter(a => a.id !== id));
-      setIsDetailModalOpen(false);
     }
   };
 
@@ -204,7 +194,7 @@ export default function AdminDashboardPage() {
     doc.setFont("helvetica", "bold");
     doc.text("Nama Pelapor :", 25, 160);
     doc.setFont("helvetica", "normal");
-    doc.text(aspiration.user, 60, 160);
+    doc.text(aspiration.user || aspiration.author, 60, 160);
     doc.setFont("helvetica", "bold");
     doc.text("Judul Laporan :", 25, 170);
     doc.setFont("helvetica", "normal");
@@ -229,116 +219,12 @@ export default function AdminDashboardPage() {
 
   if (!currentUser) return null;
 
+  const sortedAspirations = [...aspirations].sort((a,b) => (b.jarak + b.urgensi) - (a.jarak + a.urgensi));
+
   const renderModals = () => {
     if (!isClient) return null;
     return createPortal(
       <>
-        {/* Detail Modal */}
-        {isDetailModalOpen && selectedAspiration && (
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[95vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-white">{selectedAspiration.title}</h3>
-                  <p className="text-sm font-bold text-teal-600 dark:text-teal-400 mt-1">{selectedAspiration.id} • {selectedAspiration.date}</p>
-                </div>
-                <button onClick={() => setIsDetailModalOpen(false)} className="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 mb-6 border border-slate-100 dark:border-slate-700/50">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pelapor</p>
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{selectedAspiration.user}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Kategori</p>
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{selectedAspiration.category}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl border border-orange-100 dark:border-orange-800">
-                    <p className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider mb-1">Jarak (0-100)</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-200">{selectedAspiration.jarak}</p>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800">
-                    <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">Urgensi (0-100)</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-200">{selectedAspiration.urgensi}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Skor SPK: {selectedAspiration.jarak + selectedAspiration.urgensi}</p>
-                </div>
-                <div className="mt-4">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Isi Laporan / Keluhan</p>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">{selectedAspiration.description}</p>
-                </div>
-              </div>
-
-              {selectedAspiration.status === "Menunggu Approval" && currentUser.role === "Super Admin" ? (
-                <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-teal-500" /> Aksi Administrator
-                  </h4>
-                  <div className="mb-6">
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">Pilih Kategori Dinas Tujuan</label>
-                    <select 
-                      value={selectedDinas} 
-                      onChange={e => setSelectedDinas(e.target.value)} 
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white text-sm font-medium"
-                    >
-                      <option value="">-- Pilih Dinas / Instansi --</option>
-                      {dinasList.map(d => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button 
-                      onClick={handleDeleteAspiration} 
-                      className="py-3 px-4 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/30 dark:hover:bg-red-600 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" /> Hapus
-                    </button>
-                    <button 
-                      onClick={handleRejectFromDetail} 
-                      className="py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
-                    >
-                      <X className="w-4 h-4" /> Tolak
-                    </button>
-                    <button 
-                      onClick={handleApproveFromDetail} 
-                      disabled={loadingAction === `approve-${selectedAspiration.id}`}
-                      className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70"
-                    >
-                      {loadingAction === `approve-${selectedAspiration.id}` ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Check className="w-5 h-5" /> Setujui & Teruskan</>}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
-                    <p className="text-sm font-bold text-blue-800 dark:text-blue-300">Status: {selectedAspiration.status}</p>
-                    {selectedAspiration.forwardedTo && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Diteruskan ke: {selectedAspiration.forwardedTo}</p>
-                    )}
-                  </div>
-                  <div className="mt-4 flex justify-end gap-3">
-                    {currentUser.role === "Super Admin" && (
-                      <button onClick={() => handleDeleteAspiration(selectedAspiration.id)} className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-bold rounded-xl transition-colors flex items-center gap-2">
-                        <Trash2 className="w-4 h-4" /> Hapus Data
-                      </button>
-                    )}
-                    <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Tutup</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* User Modal */}
         {isUserModalOpen && (
           <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
@@ -426,38 +312,38 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-20 pt-8 relative">
       
       {/* Header Info & Logout */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-xl">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center font-bold text-lg">
+          <div className="w-12 h-12 bg-teal-500/20 text-teal-400 rounded-full flex items-center justify-center font-bold text-lg border border-teal-500/30">
             {currentUser.name.charAt(0)}
           </div>
           <div>
-            <h2 className="font-bold text-slate-900 dark:text-white">{currentUser.name}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{currentUser.role} • {currentUser.instansi}</p>
+            <h2 className="font-bold text-white text-lg">{currentUser.name}</h2>
+            <p className="text-xs text-slate-400">{currentUser.role} • {currentUser.instansi}</p>
           </div>
         </div>
-        <button onClick={handleLogout} className="mt-4 md:mt-0 flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 rounded-full text-sm font-bold transition-all">
+        <button onClick={handleLogout} className="mt-4 md:mt-0 flex items-center gap-2 px-5 py-2.5 text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white rounded-full text-sm font-bold transition-all border border-slate-700">
           <LogOut className="w-4 h-4" /> Keluar
         </button>
       </div>
 
       {/* Tab Navigation */}
       <div className="flex items-center gap-2 md:gap-4 mb-8 overflow-x-auto pb-4 scrollbar-hide animate-premium-reveal">
-        <button onClick={() => setActiveTab("dashboard")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
-          <LayoutDashboard className="w-4 h-4" /> Overview
+        <button onClick={() => setActiveTab("dashboard")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
+          <LayoutDashboard className="w-4 h-4" /> Overview Dashboard
         </button>
-        <button onClick={() => setActiveTab("aspirasi")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'aspirasi' ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
-          <CheckCircle className="w-4 h-4" /> Approval
+        <button onClick={() => setActiveTab("aspirasi")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'aspirasi' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
+          <CheckCircle className="w-4 h-4" /> Approval & Aspirasi
         </button>
         {currentUser.role === "Super Admin" && (
           <>
-            <button onClick={() => setActiveTab("users")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+            <button onClick={() => setActiveTab("users")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
               <Users className="w-4 h-4" /> Manajemen User
             </button>
-            <button onClick={() => setActiveTab("dinas")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dinas' ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+            <button onClick={() => setActiveTab("dinas")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dinas' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
               <Building2 className="w-4 h-4" /> Kategori Dinas
             </button>
           </>
@@ -467,11 +353,15 @@ export default function AdminDashboardPage() {
       {/* DASHBOARD TAB */}
       {activeTab === "dashboard" && (
         <div className="animate-premium-reveal">
+          <div className="mb-10">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Dashboard Utama</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Ringkasan statistik sistem PINTAR TVRI Jawa Tengah.</p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             {[
-              { title: "Laporan Baru", value: "24", icon: FileText, gradient: "from-blue-400 to-blue-600" },
-              { title: "Total Diteruskan", value: "145", icon: Clock, gradient: "from-orange-400 to-orange-500" },
-              { title: "Tuntas/Selesai", value: "8.120", icon: CheckCircle, gradient: "from-emerald-400 to-emerald-600" },
+              { title: "Laporan Baru", value: aspirations.filter(a => a.status === "Menunggu Approval").length, icon: FileText, gradient: "from-blue-400 to-blue-600" },
+              { title: "Diteruskan ke Dinas", value: aspirations.filter(a => a.status === "Diteruskan ke Dinas").length, icon: Clock, gradient: "from-orange-400 to-orange-500" },
+              { title: "Tuntas/Selesai", value: aspirations.filter(a => a.status === "Selesai").length, icon: CheckCircle, gradient: "from-emerald-400 to-emerald-600" },
               { title: "Total Pengguna", value: users.length, icon: Users, gradient: "from-teal-400 to-teal-600" },
             ].map((stat, i) => (
               <div key={i} className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 transition-all">
@@ -490,60 +380,134 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* ASPIRASI TAB */}
+      {/* ASPIRASI TAB (Rich Cards) */}
       {activeTab === "aspirasi" && (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-premium-reveal">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-teal-500" /> Approval Aspirasi
-            </h3>
+        <div className="flex flex-col gap-6 animate-premium-reveal">
+          
+          <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800 mb-2 shadow-sm">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-teal-500" /> Daftar Aspirasi Masuk
+            </h2>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400">Urutkan berdasarkan:</span>
+              <select className="bg-[#1A2642] border border-[#2A3B61] text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-teal-500">
+                <option>Skor Gabungan (Tertinggi)</option>
+                <option>Terbaru</option>
+              </select>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-bold">SPK Rank</th>
-                  <th className="px-6 py-4 font-bold">Detail Laporan</th>
-                  <th className="px-6 py-4 font-bold">Status</th>
-                  <th className="px-6 py-4 font-bold text-center">Aksi / Cetak</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                {aspirations.sort((a,b) => (b.jarak + b.urgensi) - (a.jarak + a.urgensi)).map((item, i) => (
-                  <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col items-center justify-center p-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-100 dark:border-orange-800 w-16">
-                        <span className="text-[10px] font-bold uppercase">Skor</span>
-                        <span className="text-lg font-black">{item.jarak + item.urgensi}</span>
+
+          <div className="flex flex-col gap-5">
+            {sortedAspirations.map((item, index) => {
+              const totalScore = item.jarak + item.urgensi;
+              
+              return (
+                <div key={item.id} className="flex flex-col lg:flex-row bg-[#0B152B] border border-[#1A2642] rounded-3xl overflow-hidden shadow-2xl relative text-white">
+                  
+                  {/* Left Section: Info */}
+                  <div className="flex-1 p-6 lg:p-8 flex items-start gap-4 lg:gap-6 border-b lg:border-b-0 lg:border-r border-[#1A2642]">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-500/20">
+                      {index + 1}
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="bg-[#1A2642] text-slate-300 text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-full border border-slate-700">
+                          {item.category}
+                        </span>
+                        <span className="text-xs font-medium text-slate-500">• {item.time}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">{item.id} - {item.user}</p>
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{item.title}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-xs">{item.description}</p>
-                      <p className="text-xs text-slate-400 mt-1">{item.date}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${item.color}`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openDetailModal(item)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white dark:bg-blue-500/10 dark:hover:bg-blue-500 rounded-lg text-xs font-bold transition-colors">
-                          <Eye className="w-4 h-4" /> Detail
-                        </button>
+                      
+                      <h3 className="text-xl font-bold text-white mb-3 leading-snug">{item.title}</h3>
+                      <p className="text-slate-400 text-sm leading-relaxed mb-6">{item.description}</p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm">
+                            {(item.author || item.user || "A")[0]}
+                          </div>
+                          <span className="text-sm font-bold text-slate-300">{item.author || item.user}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5 text-slate-400 bg-[#1A2642] border border-[#2A3B61] px-3 py-1.5 rounded-lg text-sm font-bold">
+                            <Trophy className="w-4 h-4" /> {item.initialUpvotes}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Section: Admin Controls */}
+                  <div className="w-full lg:w-[450px] p-6 lg:p-8 bg-[#0B152B] flex flex-col justify-center relative">
+                    
+                    <div className="absolute right-6 top-8 text-center hidden md:block">
+                      <Trophy className="w-6 h-6 text-orange-400 mx-auto mb-1" />
+                      <p className="text-xs text-slate-400 font-bold">Di atas</p>
+                      <p className="text-3xl font-black text-white">#{index + 1}</p>
+                    </div>
+
+                    <p className="text-sm font-bold text-slate-300 mb-4">Status Admin</p>
+                    
+                    {item.status === "Menunggu Approval" && currentUser.role === "Super Admin" ? (
+                      <>
+                        <div className="mb-4">
+                          <select 
+                            value={selectedDinasForCard[item.id] || ""} 
+                            onChange={e => setSelectedDinasForCard({...selectedDinasForCard, [item.id]: e.target.value})} 
+                            className="w-full px-4 py-2 bg-[#1A2642] border border-[#2A3B61] rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-white text-sm font-medium"
+                          >
+                            <option value="">Pilih Dinas Tujuan...</option>
+                            {dinasList.map(d => (
+                              <option key={d.id} value={d.name}>{d.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-2 mb-6">
+                          <button onClick={() => handleApprove(item.id)} disabled={loadingAction === `approve-${item.id}`} className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50">
+                            {loadingAction === `approve-${item.id}` ? "..." : <><Check className="w-4 h-4" /> Approve</>}
+                          </button>
+                          <button onClick={() => handleReject(item.id)} className="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 py-2.5 rounded-xl text-sm font-bold transition-all">
+                            <X className="w-4 h-4" /> Reject
+                          </button>
+                          <button onClick={() => handleDeleteAspiration(item.id)} className="flex items-center justify-center gap-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 px-4 py-2.5 rounded-xl text-sm font-bold transition-all">
+                            <Trash2 className="w-4 h-4" /> Delete
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="px-4 py-2.5 rounded-xl text-sm font-bold bg-[#1A2642] text-slate-300 border border-[#2A3B61]">
+                          Status: <span className={item.status === "Selesai" ? "text-emerald-400" : item.status === "Diteruskan ke Dinas" ? "text-blue-400" : "text-slate-400"}>{item.status}</span>
+                        </div>
                         {(item.status === "Diteruskan ke Dinas" || item.status === "Selesai") && (
-                          <button onClick={() => generatePDF(item)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-lg text-xs font-bold transition-colors">
-                            <Printer className="w-4 h-4" /> Cetak
+                          <button onClick={() => generatePDF(item)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20">
+                            <Printer className="w-4 h-4" /> Cetak PDF
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    )}
+
+                    {/* Scores Section */}
+                    <div className="flex items-center gap-2 mt-auto">
+                      <div className="flex-1 bg-[#1A2642] rounded-xl p-3 border border-[#2A3B61]">
+                        <p className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-blue-400" /> Jarak</p>
+                        <p className="text-2xl font-black text-white">{item.jarak}</p>
+                      </div>
+                      <div className="text-slate-500 font-bold">+</div>
+                      <div className="flex-1 bg-[#1A2642] rounded-xl p-3 border border-[#2A3B61]">
+                        <p className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-orange-400" /> Urgensi</p>
+                        <p className="text-2xl font-black text-white">{item.urgensi}</p>
+                      </div>
+                      <div className="flex-[1.5] bg-blue-500 rounded-xl p-3 shadow-lg shadow-blue-500/20 ml-2">
+                        <p className="text-xs text-blue-100 font-bold mb-1">Total Skor</p>
+                        <p className="text-2xl font-black text-white">{totalScore}</p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
