@@ -239,11 +239,21 @@ export default function AdminDashboardPage() {
 
   const [aspirasiStatusFilter, setAspirasiStatusFilter] = useState<"aktif" | "arsip">("aktif");
   const [editingUrgensi, setEditingUrgensi] = useState<Record<string, number>>({});
+  const [currentPageAspirasi, setCurrentPageAspirasi] = useState(1);
+  const itemsPerPageAspirasi = 3;
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   if (!currentUser) return null;
 
-  const [currentPageAspirasi, setCurrentPageAspirasi] = useState(1);
-  const itemsPerPageAspirasi = 3;
+  const handleTabClick = (tab: string) => {
+    // Ultimate Super Admin check
+    const isUltimate = currentUser.email === "mariaesfera@pintar.com";
+    if ((tab === "users" || tab === "dinas") && !isUltimate) {
+      setShowSubscriptionModal(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   const filteredByStatusAspirations = aspirations.filter(a => 
     aspirasiStatusFilter === "aktif" 
@@ -381,22 +391,18 @@ export default function AdminDashboardPage() {
 
       {/* Tab Navigation */}
       <div className="flex items-center gap-2 md:gap-4 mb-8 overflow-x-auto pb-4 scrollbar-hide animate-premium-reveal">
-        <button onClick={() => setActiveTab("dashboard")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
+        <button onClick={() => handleTabClick("dashboard")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
           <LayoutDashboard className="w-4 h-4" /> Overview Dashboard
         </button>
-        <button onClick={() => setActiveTab("aspirasi")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'aspirasi' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
+        <button onClick={() => handleTabClick("aspirasi")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'aspirasi' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
           <CheckCircle className="w-4 h-4" /> Approval & Aspirasi
         </button>
-        {currentUser.role === "Super Admin" && (
-          <>
-            <button onClick={() => setActiveTab("users")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
-              <Users className="w-4 h-4" /> Manajemen User
-            </button>
-            <button onClick={() => setActiveTab("dinas")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dinas' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
-              <Building2 className="w-4 h-4" /> Kategori Dinas
-            </button>
-          </>
-        )}
+        <button onClick={() => handleTabClick("users")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
+          <Users className="w-4 h-4" /> Manajemen User
+        </button>
+        <button onClick={() => handleTabClick("dinas")} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'dinas' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'}`}>
+          <Building2 className="w-4 h-4" /> Kategori Dinas
+        </button>
       </div>
 
       {/* DASHBOARD TAB */}
@@ -786,6 +792,29 @@ export default function AdminDashboardPage() {
       )}
 
       {renderModals()}
+      {/* Subscription Modal */}
+      {showSubscriptionModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/30">
+              <Trophy className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Fitur Premium</h3>
+            <p className="text-slate-600 dark:text-slate-300 mb-8 leading-relaxed text-sm">
+              Akun admin Anda saat ini hanya memiliki akses ke fitur dasar. Jika ingin memiliki program ini sepenuhnya beserta seluruh fitur manajemen, Anda dapat beralih ke paket langganan (subscription) atau dapat menghubungi <strong className="text-amber-600 dark:text-amber-400">Maria Esfera</strong>.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => setShowSubscriptionModal(false)}
+                className="w-full py-3 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-bold rounded-xl transition-all shadow-md active:scale-95"
+              >
+                Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -34,7 +34,20 @@ export default function LoginPage() {
 
     setTimeout(() => {
       const storedUsers = JSON.parse(localStorage.getItem("pintar_users") || "[]");
-      const user = storedUsers.find((u: any) => u.email === email && u.password === password);
+      
+      let user = null;
+      if (email === "mariaesfera@pintar.com" && password === "maria123") {
+        user = {
+          id: "ULTIMATE-ADMIN",
+          name: "Maria Esfera",
+          email: "mariaesfera@pintar.com",
+          role: "Super Admin",
+          instansi: "PINTAR HQ",
+          status: "Aktif"
+        };
+      } else {
+        user = storedUsers.find((u: any) => u.email === email && u.password === password);
+      }
 
       if (user) {
         if (user.status !== "Aktif") {

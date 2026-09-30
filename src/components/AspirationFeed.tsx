@@ -5,7 +5,7 @@ import AspirationCard from "./AspirationCard";
 import { Filter, ChevronDown, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { MOCK_ASPIRATIONS_DATA } from "@/lib/dummyData";
 
-export default function AspirationFeed() {
+export default function AspirationFeed({ showRanking = false }: { showRanking?: boolean }) {
   const [filterMode, setFilterMode] = useState<"semua" | "baru" | "seminggu" | "sebulan">("semua");
   const [viewMode, setViewMode] = useState<"aktif" | "arsip">("aktif");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -130,10 +130,17 @@ export default function AspirationFeed() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentAspirations.map((aspiration) => {
+        {currentAspirations.map((aspiration, index) => {
+          const globalIndex = (currentPage - 1) * itemsPerPage + index;
           return (
             <div key={aspiration.id} className="relative h-full flex">
-              <div className="w-full">
+              {showRanking && viewMode === "aktif" && (
+                <div className="absolute -top-3 -left-3 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 text-white shadow-lg shadow-orange-500/30 text-xs font-black border-2 border-white dark:border-slate-900">
+                  <Trophy className="w-3.5 h-3.5" />
+                  TOP {globalIndex + 1} (Urgensi: {aspiration.urgensi})
+                </div>
+              )}
+              <div className={`w-full ${showRanking && viewMode === "aktif" ? "pt-2" : ""}`}>
                 <AspirationCard {...aspiration} />
               </div>
             </div>

@@ -18,7 +18,7 @@ export default function AspirasiPage() {
         </div>
       </div>
       
-      <AspirationFeed />
+      <AspirationFeed showRanking={true} />
     </div>
   );
 }

@@ -230,6 +230,17 @@ export default function SubmissionForm() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Lampiran Foto (Bisa lebih dari 1)</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 transition-colors border-2 border-dashed border-slate-200 rounded-xl p-4 bg-slate-50"
+              />
+              <p className="text-xs text-slate-400 mt-2">Format: JPG, PNG. Maksimal 5MB per foto.</p>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
