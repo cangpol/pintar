@@ -225,7 +225,22 @@ export default function AdminDashboardPage() {
 
   if (!currentUser) return null;
 
-  const sortedAspirations = [...aspirations].sort((a,b) => b.urgensi - a.urgensi);
+  const [aspirasiStatusFilter, setAspirasiStatusFilter] = useState<"aktif" | "arsip">("aktif");
+  const [editingUrgensi, setEditingUrgensi] = useState<Record<string, number>>({});
+
+  const filteredByStatusAspirations = aspirations.filter(a => 
+    aspirasiStatusFilter === "aktif" 
+      ? (a.status !== "Selesai" && a.status !== "Ditolak/Arsip") 
+      : (a.status === "Selesai" || a.status === "Ditolak/Arsip")
+  );
+
+  const sortedAspirations = [...filteredByStatusAspirations].sort((a,b) => {
+    if (aspirasiStatusFilter === "aktif") {
+      return b.urgensi - a.urgensi;
+    }
+    // For arsip, sort by newest
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   const renderModals = () => {
     if (!isClient) return null;
@@ -390,16 +405,37 @@ export default function AdminDashboardPage() {
       {activeTab === "aspirasi" && (
         <div className="flex flex-col gap-6 animate-premium-reveal">
           
-          <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800 mb-2 shadow-sm">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-teal-500" /> Daftar Aspirasi Masuk
-            </h2>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-400">Urutkan berdasarkan:</span>
-              <select className="bg-[#1A2642] border border-[#2A3B61] text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-teal-500">
-                <option>Urgensi (Tertinggi)</option>
-                <option>Terbaru</option>
-              </select>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 p-4 rounded-2xl border border-slate-800 mb-2 shadow-sm gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-teal-500" />
+              <h2 className="text-xl font-bold text-white">
+                {aspirasiStatusFilter === "aktif" ? "Daftar Aspirasi Masuk" : "Arsip Aspirasi (Selesai/Ditolak)"}
+              </h2>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              <div className="flex bg-[#1A2642] p-1 rounded-xl border border-[#2A3B61] w-full sm:w-auto">
+                <button 
+                  onClick={() => setAspirasiStatusFilter("aktif")}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${aspirasiStatusFilter === "aktif" ? "bg-teal-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                >
+                  Aktif
+                </button>
+                <button 
+                  onClick={() => setAspirasiStatusFilter("arsip")}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${aspirasiStatusFilter === "arsip" ? "bg-slate-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                >
+                  Arsip
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-sm text-slate-400 hidden sm:block">Urutkan:</span>
+                <select className="bg-[#1A2642] border border-[#2A3B61] text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-auto">
+                  <option>Urgensi (Tertinggi)</option>
+                  <option>Terbaru</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -445,11 +481,13 @@ export default function AdminDashboardPage() {
                   {/* Right Section: Admin Controls */}
                   <div className="w-full lg:w-[450px] p-6 lg:p-8 bg-[#0B152B] flex flex-col justify-center relative">
                     
-                    <div className="absolute right-6 top-8 text-center hidden md:block">
-                      <Trophy className="w-6 h-6 text-orange-400 mx-auto mb-1" />
-                      <p className="text-xs text-slate-400 font-bold">Ranking</p>
-                      <p className="text-3xl font-black text-white">#{index + 1}</p>
-                    </div>
+                    {aspirasiStatusFilter === "aktif" && (
+                      <div className="absolute right-6 top-8 text-center hidden md:block">
+                        <Trophy className="w-6 h-6 text-orange-400 mx-auto mb-1" />
+                        <p className="text-xs text-slate-400 font-bold">Ranking</p>
+                        <p className="text-3xl font-black text-white">#{index + 1}</p>
+                      </div>
+                    )}
 
                     <p className="text-sm font-bold text-slate-300 mb-4">Status Admin</p>
                     
@@ -499,18 +537,31 @@ export default function AdminDashboardPage() {
                         <p className="text-xl font-black text-white">{item.jarak} km</p>
                       </div>
                       
-                      <div className="flex-1 w-full bg-orange-500/10 rounded-xl p-3 border border-orange-500/20 shadow-lg shadow-orange-500/5">
+                      <div className="flex-[1.5] w-full bg-orange-500/10 rounded-xl p-3 border border-orange-500/20 shadow-lg shadow-orange-500/5">
                         <p className="text-xs text-orange-400 font-bold mb-1 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Urgensi</p>
                         {currentUser.role === "Super Admin" ? (
                            <div className="flex items-center gap-2">
                              <input 
                                type="number" 
-                               value={item.urgensi}
-                               onChange={(e) => handleUpdateUrgensi(item.id, Number(e.target.value))}
-                               className="w-20 bg-[#0B152B] border border-orange-500/50 text-white font-black text-xl px-2 py-1 rounded outline-none focus:ring-2 focus:ring-orange-500"
+                               value={editingUrgensi[item.id] !== undefined ? editingUrgensi[item.id] : item.urgensi}
+                               onChange={(e) => setEditingUrgensi({...editingUrgensi, [item.id]: Number(e.target.value)})}
+                               className="w-16 bg-[#0B152B] border border-orange-500/50 text-white font-black text-xl px-2 py-1 rounded outline-none focus:ring-2 focus:ring-orange-500"
                                min="0" max="100"
                              />
-                             <span className="text-xs text-orange-400">/ 100</span>
+                             <span className="text-xs text-orange-400 hidden lg:inline">/ 100</span>
+                             {editingUrgensi[item.id] !== undefined && editingUrgensi[item.id] !== item.urgensi && (
+                               <button 
+                                 onClick={() => {
+                                   handleUpdateUrgensi(item.id, editingUrgensi[item.id]);
+                                   const newEditing = { ...editingUrgensi };
+                                   delete newEditing[item.id];
+                                   setEditingUrgensi(newEditing);
+                                 }}
+                                 className="ml-auto bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-md shadow-orange-500/20"
+                               >
+                                 <Check className="w-3.5 h-3.5" /> Confirm
+                               </button>
+                             )}
                            </div>
                         ) : (
                           <p className="text-xl font-black text-white">{item.urgensi} <span className="text-xs font-normal text-slate-400">/ 100</span></p>
