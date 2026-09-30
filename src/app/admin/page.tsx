@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("pintar_session");
-    router.push("/login");
+    router.push("/");
   };
 
   // CRUD USER FUNCTIONS
