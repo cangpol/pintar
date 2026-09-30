@@ -1,14 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { Users, FileText, CheckCircle, Clock, Search, Filter, MoreVertical, LayoutDashboard, ShieldCheck, Download, Check, X, Printer, UserPlus, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Users, FileText, CheckCircle, Clock, Search, Filter, MoreVertical, LayoutDashboard, ShieldCheck, Download, Check, X, Printer, UserPlus, Settings, LogOut, Trash2 } from "lucide-react";
 import jsPDF from "jspdf";
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"dashboard" | "aspirasi" | "users">("dashboard");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   
-  // Dummy data state for aspirations
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Modal State for CRUD User
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [userForm, setUserForm] = useState({ email: "", password: "", name: "", role: "Operator Dinas", instansi: "", status: "Aktif" });
+
   const [aspirations, setAspirations] = useState([
     { id: "ASP-001", user: "Budi Santoso", category: "Infrastruktur", description: "Jalan berlubang parah di ruas jalan protokol depan pasar induk yang menyebabkan kecelakaan.", status: "Menunggu Approval", date: "Hari ini, 09:30", color: "text-orange-500 bg-orange-500/10" },
     { id: "ASP-002", user: "Siti Aminah", category: "Pelayanan Publik", description: "Antrean panjang dan pelayanan lambat di Disdukcapil kota.", status: "Selesai", date: "Kemarin, 14:15", color: "text-emerald-500 bg-emerald-500/10" },
@@ -16,13 +25,60 @@ export default function AdminDashboardPage() {
     { id: "ASP-004", user: "Dewi Lestari", category: "Fasilitas Umum", description: "Lampu penerangan jalan (PJU) mati total di sepanjang jalan merdeka barat.", status: "Diteruskan ke Dinas", date: "27 Sep, 16:20", color: "text-blue-500 bg-blue-500/10" },
   ]);
 
-  // Dummy users data
-  const [users, setUsers] = useState([
-    { id: "USR-001", name: "Admin Utama", role: "Super Admin", instansi: "TVRI Jawa Tengah", status: "Aktif" },
-    { id: "USR-002", name: "Dinas PU", role: "Operator Dinas", instansi: "Dinas Pekerjaan Umum", status: "Aktif" },
-    { id: "USR-003", name: "Dinas Lingkungan", role: "Operator Dinas", instansi: "Dinas Lingkungan Hidup", status: "Aktif" },
-    { id: "USR-004", name: "Staff Peninjau", role: "Reviewer", instansi: "TVRI Jawa Tengah", status: "Nonaktif" },
-  ]);
+  useEffect(() => {
+    const session = localStorage.getItem("pintar_session");
+    if (!session) {
+      router.push("/login");
+      return;
+    }
+    setCurrentUser(JSON.parse(session));
+    setUsers(JSON.parse(localStorage.getItem("pintar_users") || "[]"));
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("pintar_session");
+    router.push("/login");
+  };
+
+  // CRUD USER FUNCTIONS
+  const handleOpenUserModal = (userId: string | null = null) => {
+    if (userId) {
+      const u = users.find(x => x.id === userId);
+      if (u) {
+        setUserForm(u);
+        setEditingUserId(u.id);
+      }
+    } else {
+      setUserForm({ email: "", password: "123", name: "", role: "Operator Dinas", instansi: "", status: "Aktif" });
+      setEditingUserId(null);
+    }
+    setIsUserModalOpen(true);
+  };
+
+  const handleSaveUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    let updatedUsers = [...users];
+    
+    if (editingUserId) {
+      updatedUsers = updatedUsers.map(u => u.id === editingUserId ? { ...userForm, id: editingUserId } : u);
+    } else {
+      const newId = `USR-00${users.length + 1}`;
+      updatedUsers.push({ ...userForm, id: newId });
+    }
+    
+    setUsers(updatedUsers);
+    localStorage.setItem("pintar_users", JSON.stringify(updatedUsers));
+    setIsUserModalOpen(false);
+  };
+
+  const handleDeleteUser = (id: string) => {
+    if (id === currentUser.id) return alert("Anda tidak dapat menghapus akun Anda sendiri!");
+    if (confirm("Yakin ingin menghapus user ini?")) {
+      const updatedUsers = users.filter(u => u.id !== id);
+      setUsers(updatedUsers);
+      localStorage.setItem("pintar_users", JSON.stringify(updatedUsers));
+    }
+  };
 
   const handleApprove = (id: string) => {
     setLoadingAction(id);
@@ -35,18 +91,8 @@ export default function AdminDashboardPage() {
     }, 1000);
   };
 
-  const handleReject = (id: string) => {
-    if(confirm("Apakah Anda yakin ingin menolak/mengarsipkan aspirasi ini?")) {
-      setAspirations(prev => prev.map(a => 
-        a.id === id ? { ...a, status: "Ditolak/Arsip", color: "text-slate-500 bg-slate-500/10" } : a
-      ));
-    }
-  };
-
   const generatePDF = (aspiration: any) => {
     const doc = new jsPDF();
-    
-    // Kop Surat
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.text("PINTAR - PUSAT INTERAKSI & ASPIRASI RAKYAT", 105, 20, { align: "center" });
@@ -57,15 +103,12 @@ export default function AdminDashboardPage() {
     doc.setLineWidth(0.5);
     doc.line(20, 32, 190, 32);
     
-    // Judul Surat
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.text("SURAT PENGANTAR ASPIRASI MASYARAKAT", 105, 45, { align: "center" });
     
-    // Isi
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    
     doc.text(`Nomor Tiket  : ${aspiration.id}`, 20, 60);
     doc.text(`Tanggal      : ${new Date().toLocaleDateString('id-ID')}`, 20, 67);
     doc.text(`Kategori     : ${aspiration.category}`, 20, 74);
@@ -97,16 +140,33 @@ export default function AdminDashboardPage() {
     
     doc.text("Hormat kami,", 140, 220);
     doc.setFont("helvetica", "bold");
-    doc.text("Administrator PINTAR", 140, 245);
-    doc.text("TVRI Jawa Tengah", 140, 252);
+    doc.text(currentUser?.name || "Administrator", 140, 245);
+    doc.text("PINTAR TVRI Jawa Tengah", 140, 252);
     
-    // Simpan PDF
     doc.save(`Surat_Pengantar_Aspirasi_${aspiration.id}.pdf`);
   };
 
+  if (!currentUser) return null;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 relative">
       
+      {/* Header Info & Logout */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center font-bold text-lg">
+            {currentUser.name.charAt(0)}
+          </div>
+          <div>
+            <h2 className="font-bold text-slate-900 dark:text-white">{currentUser.name}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{currentUser.role} • {currentUser.instansi}</p>
+          </div>
+        </div>
+        <button onClick={handleLogout} className="mt-4 md:mt-0 flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 rounded-full text-sm font-bold transition-all">
+          <LogOut className="w-4 h-4" /> Keluar
+        </button>
+      </div>
+
       {/* Tab Navigation */}
       <div className="flex items-center gap-2 md:gap-4 mb-8 overflow-x-auto pb-4 scrollbar-hide animate-premium-reveal">
         <button 
@@ -121,14 +181,19 @@ export default function AdminDashboardPage() {
         >
           <CheckCircle className="w-4 h-4" /> Approval & Aspirasi
         </button>
-        <button 
-          onClick={() => setActiveTab("users")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-        >
-          <Users className="w-4 h-4" /> Manajemen User
-        </button>
+        
+        {/* Only Super Admin can see User Management */}
+        {currentUser.role === "Super Admin" && (
+          <button 
+            onClick={() => setActiveTab("users")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+          >
+            <Users className="w-4 h-4" /> Manajemen User
+          </button>
+        )}
       </div>
 
+      {/* DASHBOARD TAB */}
       {activeTab === "dashboard" && (
         <div className="animate-premium-reveal">
           <div className="mb-10">
@@ -140,7 +205,7 @@ export default function AdminDashboardPage() {
               { title: "Laporan Baru", value: "24", icon: FileText, gradient: "from-blue-400 to-blue-600", trend: "Menunggu Approval" },
               { title: "Total Diteruskan", value: "145", icon: Clock, gradient: "from-orange-400 to-orange-500", trend: "Sedang diproses dinas" },
               { title: "Tuntas/Selesai", value: "8.120", icon: CheckCircle, gradient: "from-emerald-400 to-emerald-600", trend: "Solusi ditemukan" },
-              { title: "Total Pengguna", value: "5.431", icon: Users, gradient: "from-teal-400 to-teal-600", trend: "Admin & Publik" },
+              { title: "Total Pengguna", value: users.length, icon: Users, gradient: "from-teal-400 to-teal-600", trend: "Admin & Publik" },
             ].map((stat, i) => (
               <div key={i} className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 group hover:-translate-y-1 transition-all">
                 <div className="flex items-center justify-between mb-4">
@@ -159,6 +224,7 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {/* ASPIRASI TAB */}
       {activeTab === "aspirasi" && (
         <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-premium-reveal">
           <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -193,33 +259,22 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        {item.status === "Menunggu Approval" ? (
+                        {item.status === "Menunggu Approval" && currentUser.role === "Super Admin" ? (
                           <>
-                            <button 
-                              onClick={() => handleApprove(item.id)}
-                              disabled={loadingAction === item.id}
-                              className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-500 rounded-lg transition-colors group relative"
-                              title="Setujui & Teruskan"
-                            >
+                            <button onClick={() => handleApprove(item.id)} disabled={loadingAction === item.id} className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-500 rounded-lg transition-colors group relative" title="Setujui & Teruskan">
                               {loadingAction === item.id ? <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" /> : <Check className="w-5 h-5" />}
                             </button>
-                            <button 
-                              onClick={() => handleReject(item.id)}
-                              className="p-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:hover:bg-red-500 rounded-lg transition-colors group relative"
-                              title="Tolak / Arsipkan"
-                            >
+                            <button className="p-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:hover:bg-red-500 rounded-lg transition-colors group relative" title="Tolak / Arsipkan">
                               <X className="w-5 h-5" />
                             </button>
                           </>
-                        ) : (
-                          <button 
-                            onClick={() => generatePDF(item)}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-xl transition-all text-xs font-bold"
-                            title="Export Pengantar ke Dinas (PDF)"
-                          >
+                        ) : item.status === "Diteruskan ke Dinas" || item.status === "Selesai" ? (
+                          <button onClick={() => generatePDF(item)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-xl transition-all text-xs font-bold" title="Export Pengantar ke Dinas (PDF)">
                             <Printer className="w-4 h-4" />
                             <span>Cetak PDF</span>
                           </button>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Menunggu Super Admin</span>
                         )}
                       </div>
                     </td>
@@ -231,14 +286,15 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {activeTab === "users" && (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-premium-reveal">
+      {/* USER MANAGEMENT TAB (Super Admin Only) */}
+      {activeTab === "users" && currentUser.role === "Super Admin" && (
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-premium-reveal relative">
           <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Users className="w-5 h-5 text-teal-500" />
               Manajemen Hak Akses & Pengguna
             </h3>
-            <button className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-teal-700 transition-colors">
+            <button onClick={() => handleOpenUserModal(null)} className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-teal-700 transition-colors shadow-md">
               <UserPlus className="w-4 h-4" /> Tambah User
             </button>
           </div>
@@ -258,7 +314,7 @@ export default function AdminDashboardPage() {
                   <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
                     <td className="px-6 py-4">
                       <p className="text-sm font-bold text-slate-900 dark:text-white">{item.name}</p>
-                      <p className="text-xs text-slate-400">{item.id}</p>
+                      <p className="text-xs text-slate-400">{item.email}</p>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-medium">{item.role}</td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{item.instansi}</td>
@@ -268,14 +324,69 @@ export default function AdminDashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button className="p-2 text-slate-400 hover:text-teal-600 transition-colors">
-                        <Settings className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => handleOpenUserModal(item.id)} className="p-2 text-slate-400 hover:text-teal-600 transition-colors">
+                          <Settings className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => handleDeleteUser(item.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* CRUD User Modal Overlay */}
+      {isUserModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 animate-premium-reveal">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+              {editingUserId ? "Edit Pengguna" : "Tambah Pengguna Baru"}
+            </h3>
+            <form onSubmit={handleSaveUser} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
+                <input required type="text" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Email / NIP</label>
+                <input required type="email" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                <input required type="text" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Role / Peran</label>
+                  <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white">
+                    <option>Super Admin</option>
+                    <option>Operator Dinas</option>
+                    <option>Peninjau</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                  <select value={userForm.status} onChange={e => setUserForm({...userForm, status: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white">
+                    <option>Aktif</option>
+                    <option>Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Instansi</label>
+                <input required type="text" value={userForm.instansi} onChange={e => setUserForm({...userForm, instansi: e.target.value})} placeholder="Contoh: Dinas PU" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white" />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700 mt-6">
+                <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Batal</button>
+                <button type="submit" className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl shadow-md">Simpan Data</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
