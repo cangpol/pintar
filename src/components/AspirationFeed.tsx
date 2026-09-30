@@ -22,12 +22,8 @@ export default function AspirationFeed() {
       filtered = filtered.filter(a => (now - new Date(a.createdAt).getTime()) <= 30 * 24 * 60 * 60 * 1000);
     }
 
-    // Ranking Logic (Total = Jarak + Urgensi)
-    filtered.sort((a, b) => {
-      const scoreA = a.jarak + a.urgensi;
-      const scoreB = b.jarak + b.urgensi;
-      return scoreB - scoreA;
-    });
+    // Ranking Logic (Total = Urgensi only)
+    filtered.sort((a, b) => b.urgensi - a.urgensi);
 
     return filtered;
   }, [filterMode]);
@@ -41,7 +37,7 @@ export default function AspirationFeed() {
           </div>
           <div>
             <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Aspirasi Terbaru</h2>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Diurutkan berdasarkan skor SPK (Jarak + Urgensi)</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Diurutkan berdasarkan skor SPK (Tingkat Urgensi)</p>
           </div>
         </div>
         
@@ -78,13 +74,12 @@ export default function AspirationFeed() {
       
       <div className="flex flex-col gap-6">
         {filteredAndRankedAspirations.map((aspiration, index) => {
-          const totalScore = aspiration.jarak + aspiration.urgensi;
           return (
             <div key={aspiration.id} className="relative">
               {/* Ranking Badge */}
               <div className="absolute -top-3 -left-3 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 text-white shadow-lg shadow-orange-500/30 text-xs font-black border-2 border-white dark:border-slate-900">
                 <Trophy className="w-3.5 h-3.5" />
-                TOP {index + 1} (Skor: {totalScore})
+                TOP {index + 1} (Urgensi: {aspiration.urgensi})
               </div>
               
               <div className="pt-2">

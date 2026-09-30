@@ -154,6 +154,12 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleUpdateUrgensi = (id: string, newUrgensi: number) => {
+    setAspirations(prev => prev.map(a => 
+      a.id === id ? { ...a, urgensi: newUrgensi } : a
+    ));
+  };
+
   const generatePDF = (aspiration: any) => {
     const doc = new jsPDF();
     doc.setFont("helvetica", "bold");
@@ -179,7 +185,7 @@ export default function AdminDashboardPage() {
     doc.text(`Nomor Tiket  : ${aspiration.id}`, 20, 70);
     doc.text(`Tanggal      : ${new Date().toLocaleDateString('id-ID')}`, 20, 77);
     doc.text(`Kategori     : ${aspiration.category}`, 20, 84);
-    doc.text(`Total Skor SPK: ${aspiration.jarak + aspiration.urgensi} (Jarak: ${aspiration.jarak}, Urgensi: ${aspiration.urgensi})`, 20, 91);
+    doc.text(`Prioritas SPK: Urgensi (${aspiration.urgensi}) | Jarak Lokasi (${aspiration.jarak} km)`, 20, 91);
     
     doc.text("Kepada Yth,", 20, 107);
     doc.setFont("helvetica", "bold");
@@ -219,7 +225,7 @@ export default function AdminDashboardPage() {
 
   if (!currentUser) return null;
 
-  const sortedAspirations = [...aspirations].sort((a,b) => (b.jarak + b.urgensi) - (a.jarak + a.urgensi));
+  const sortedAspirations = [...aspirations].sort((a,b) => b.urgensi - a.urgensi);
 
   const renderModals = () => {
     if (!isClient) return null;
@@ -391,7 +397,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-400">Urutkan berdasarkan:</span>
               <select className="bg-[#1A2642] border border-[#2A3B61] text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-teal-500">
-                <option>Skor Gabungan (Tertinggi)</option>
+                <option>Urgensi (Tertinggi)</option>
                 <option>Terbaru</option>
               </select>
             </div>
@@ -399,7 +405,6 @@ export default function AdminDashboardPage() {
 
           <div className="flex flex-col gap-5">
             {sortedAspirations.map((item, index) => {
-              const totalScore = item.jarak + item.urgensi;
               
               return (
                 <div key={item.id} className="flex flex-col lg:flex-row bg-[#0B152B] border border-[#1A2642] rounded-3xl overflow-hidden shadow-2xl relative text-white">
@@ -442,7 +447,7 @@ export default function AdminDashboardPage() {
                     
                     <div className="absolute right-6 top-8 text-center hidden md:block">
                       <Trophy className="w-6 h-6 text-orange-400 mx-auto mb-1" />
-                      <p className="text-xs text-slate-400 font-bold">Di atas</p>
+                      <p className="text-xs text-slate-400 font-bold">Ranking</p>
                       <p className="text-3xl font-black text-white">#{index + 1}</p>
                     </div>
 
@@ -488,19 +493,28 @@ export default function AdminDashboardPage() {
                     )}
 
                     {/* Scores Section */}
-                    <div className="flex items-center gap-2 mt-auto">
-                      <div className="flex-1 bg-[#1A2642] rounded-xl p-3 border border-[#2A3B61]">
-                        <p className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-blue-400" /> Jarak</p>
-                        <p className="text-2xl font-black text-white">{item.jarak}</p>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 mt-auto">
+                      <div className="flex-1 w-full bg-[#1A2642] rounded-xl p-3 border border-[#2A3B61]">
+                        <p className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-blue-400" /> Jarak ke TVRI</p>
+                        <p className="text-xl font-black text-white">{item.jarak} km</p>
                       </div>
-                      <div className="text-slate-500 font-bold">+</div>
-                      <div className="flex-1 bg-[#1A2642] rounded-xl p-3 border border-[#2A3B61]">
-                        <p className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-orange-400" /> Urgensi</p>
-                        <p className="text-2xl font-black text-white">{item.urgensi}</p>
-                      </div>
-                      <div className="flex-[1.5] bg-blue-500 rounded-xl p-3 shadow-lg shadow-blue-500/20 ml-2">
-                        <p className="text-xs text-blue-100 font-bold mb-1">Total Skor</p>
-                        <p className="text-2xl font-black text-white">{totalScore}</p>
+                      
+                      <div className="flex-1 w-full bg-orange-500/10 rounded-xl p-3 border border-orange-500/20 shadow-lg shadow-orange-500/5">
+                        <p className="text-xs text-orange-400 font-bold mb-1 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Urgensi</p>
+                        {currentUser.role === "Super Admin" ? (
+                           <div className="flex items-center gap-2">
+                             <input 
+                               type="number" 
+                               value={item.urgensi}
+                               onChange={(e) => handleUpdateUrgensi(item.id, Number(e.target.value))}
+                               className="w-20 bg-[#0B152B] border border-orange-500/50 text-white font-black text-xl px-2 py-1 rounded outline-none focus:ring-2 focus:ring-orange-500"
+                               min="0" max="100"
+                             />
+                             <span className="text-xs text-orange-400">/ 100</span>
+                           </div>
+                        ) : (
+                          <p className="text-xl font-black text-white">{item.urgensi} <span className="text-xs font-normal text-slate-400">/ 100</span></p>
+                        )}
                       </div>
                     </div>
 
